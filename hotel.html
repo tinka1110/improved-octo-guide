@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <title>Bokningssystem</title>
+</head>
+<body>
+    <h1>Bokningssystem</h1>
+    
+    <label for="roomSelect">Välj rum:</label>
+    <select id="roomSelect"></select>
+
+    <br><br>
+    <label for="dateInput">Bokningsdatum:</label>
+    <input type="date" id="dateInput" required>
+
+    <br><br>
+    <label for="guestName">Gäst:</label>
+    <input type="text" id="guestName" placeholder="Gästnamn" required>
+
+    <br><br>
+    <input type="button" value="Gör bokning" onclick="makeBooking()">
+
+    <h2>Bokningslista</h2>
+    <ul id="bookingList"></ul>
+
+    <script>
+        //  /rooms endpoint
+        fetch('http://localhost:5000/rooms')
+            .then(response => response.json())
+            .then(rooms => {
+                const roomSelect = document.getElementById("roomSelect");
+                rooms.forEach(room => {
+                    const option = document.createElement("option");
+                    option.value = room.room_number;
+                    option.textContent = `${room.room_type} (${room.room_number}) - ${room.price}€`;
+                    roomSelect.appendChild(option);
+                });
+            });
+
+        // Skapa bokning
+        function makeBooking() {
+            const roomNumber = document.getElementById("roomSelect").value;
+            const bookingDate = document.getElementById("dateInput").value;
+            const guestName = document.getElementById("guestName").value;
+
+            if (!roomNumber || !bookingDate || !guestName) {
+                alert("Fyll i alla fält!");
+                return;
+            }
+
+            // POST
+            fetch('http://localhost:5000/bookings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    room_number: roomNumber,
+                    booking_date: bookingDate,
+                    guest_name: guestName,
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert(data.message);
+                loadBookings();  // Uppdatera bokningslistan
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Bokningen kunde inte skapas.");
+            });
+        }
+
+        // /bookings endpoint
+        function loadBookings() {
+            fetch('http://localhost:5000/bookings')
+                .then(response => response.json())
+                .then(bookings => {
+                    const bookingList = document.getElementById("bookingList");
+                    bookingList.innerHTML = '';  
+                    bookings.forEach(booking => {
+                        const li = document.createElement("li");
+                        li.textContent = `Rum: ${booking.room_number}, Datum: ${booking.booking_date}, Gäst: ${booking.guest_name}`;
+                        bookingList.appendChild(li);
+                    });
+                });
+        }
+
+        // 
+        window.onload = loadBookings;
+    </script>
+</body>
+</html>
